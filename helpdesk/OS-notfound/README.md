@@ -5,7 +5,8 @@
 - Critical
 
 ## Summary
-User had a Windows/Ubuntu dual-boot setup. After accidentally deleting the Ubuntu partition, the system could no longer boot into Windows, showing "Operating system not found." Resolved with no data loss by rebuilding the Windows boot files.
+User had a Windows/Ubuntu dual-boot setup. After installing the Ubuntu using the internal HDD , the system could no longer boot into Windows, showing "Operating system not found." Resolved with no data loss by rebuilding the Windows boot files.
+
 
 ## Environment
 - Dual-boot system: Windows + Ubuntu on a single disk
@@ -16,12 +17,15 @@ User had a Windows/Ubuntu dual-boot setup. After accidentally deleting the Ubunt
 On restart, the system displayed **"Operating system not found"** instead of loading Windows. The Windows files themselves were confirmed intact and accessible from a recovery environment.
 
 ## Root Cause
-The disk was originally configured to dual-boot, with **GRUB** (Ubuntu's bootloader) acting as the boot manager for both operating systems. When the Ubuntu partition was deleted, GRUB was removed along with it — leaving the system firmware with no boot manager to hand off to, even though Windows itself was untouched.
+The disk was originally configured to dual-boot, with **GRUB** (Ubuntu's bootloader) acting as the boot manager for both operating systems. GRUB only displayed ubuntu in the bootmanager making it harder to impossible to boot into windows, even though Windows itself was untouched.
+
+
 
 ## Diagnosis Steps
-1. Booted from Windows installation media and opened Command Prompt via *Repair your computer > Troubleshoot > Advanced options*.
-2. Ran `diskpart` → `list disk` to confirm partition style (no `*` in the GPT column confirmed **MBR**).
-3. Attempted standard boot repair:
+1. Booted into Ubuntu to try fix the problem with the boot-repair tool, checked repair-windows and ran
+2. Booted from Windows installation media and opened Command Prompt via *Repair your computer > Troubleshoot > Advanced options*.
+3. Ran `diskpart` → `list disk` to confirm partition style (no `*` in the GPT column confirmed **MBR**).
+4. Attempted standard boot repair:
    ```
    bootrec /fixmbr
    bootrec /fixboot
@@ -29,8 +33,8 @@ The disk was originally configured to dual-boot, with **GRUB** (Ubuntu's bootloa
    bootrec /rebuildbcd
    ```
    → Failed with "The requested system device cannot be found."
-4. Ran `diskpart` → `list volume` to inspect all partitions and identify the actual Windows partition (confirmed via `dir X:\Windows` showing `System32`).
-5. Found the small System Reserved (boot) partition had a filesystem of **RAW** — meaning it had no valid filesystem and could not be written to. This was the actual point of failure, not a missing BCD entry.
+5. Ran `diskpart` → `list volume` to inspect all partitions and identify the actual Windows partition (confirmed via `dir X:\Windows` showing `System32`).
+6. Found the small System Reserved (boot) partition had a filesystem of **RAW**: meaning it had no valid filesystem and could not be written to. This was the actual point of failure, not a missing BCD entry.
 
 ## Resolution
 Rather than trying to repair the corrupted 500MB boot partition, boot files were rebuilt directly onto the main Windows partition instead:
@@ -48,16 +52,16 @@ Rather than trying to repair the corrupted 500MB boot partition, boot files were
    ```
    (where `X:` = the Windows drive letter)
 3. Received confirmation: *"Boot files successfully created."*
-4. Removed installation media and rebooted — Windows loaded successfully.
+4. Removed installation media and rebooted  Windows loaded successfully.
 
 ## Outcome
 - Windows booted normally with **zero data loss**.
 - The corrupted 500MB partition was left in place temporarily (harmless) pending a few stable reboots, then scheduled for cleanup via Disk Management.
 
 ## Lessons Learned / Recommendations
-- When dual-booting, **install Windows first, then Linux** — this avoids GRUB taking over as the primary bootloader, so deleting the Linux partition later doesn't strand Windows.
-- If a boot partition is corrupted (RAW/unreadable), don't waste time repairing it — `bcdboot` can place boot files directly on the OS partition itself as a reliable workaround.
-- Always confirm actual drive letters in the recovery environment via `list volume` rather than assuming they match the normal Windows session — recovery mode frequently reassigns them.
+- When dual-booting, **install Windows first, then Linux**: this avoids GRUB taking over as the primary bootloader, so deleting the Linux partition later doesn't strand Windows.
+- If a boot partition is corrupted (RAW/unreadable), don't waste time repairing it: `bcdboot` can place boot files directly on the OS partition itself as a reliable workaround.
+- Always confirm actual drive letters in the recovery environment via `list volume` rather than assuming they match the normal Windows session recovery mode frequently reassigns them.
 
 ---
 *Tools used: Windows Recovery Environment, `diskpart`, `bootrec`, `bcdboot`*
