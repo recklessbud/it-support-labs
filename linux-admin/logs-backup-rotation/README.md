@@ -27,3 +27,42 @@ ls -tp | grep -v '/$' | tail -n +8 | xargs -I {} rm -- {}
 echo "$(date '+%Y-%m-%d %H:%M:%S') Backup created: $BACKUP_FILE" >> "$BACKUP_DIR/backup.log"
 ```
 Save and exit from Nano with CTRL+S and CTRL+X
+ Render executable:
+```bash
+chmod +x backup_logs.sh
+```
+
+### 3. Execute
+Manual execute the script:
+```bash
+bash backup_logs.sh
+```
+Inspect outcomes:
+```bash
+ls -lh /var/backups/logs
+cat /var/backups/logs/backup.log
+```
+expected: logs-timestamp file
+
+
+### 4. Scheduling with cron
+Edit the crontab file at:
+```bash
+crontab -e
+```
+add this line to the file:
+```bash
+0 2 * * * /home/$USER/backup_logs.sh '(backups file location)'
+```
+- ***0 2***: Runs at 2am
+- * * * : runs daily
+
+Save and Exit
+
+confirm the job
+```bash
+crontab -l
+```
+
+### Summary
+This lab demonstrated how to automate log backups on an Ubuntu server using a bash script. The script compresses log files, retains only the last 7 backups, and logs its activity. Additionally, the script is scheduled to run daily at 2 AM using cron. This ensures that log files are regularly backed up and managed efficiently without manual intervention.
