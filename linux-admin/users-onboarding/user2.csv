@@ -1,0 +1,4 @@
+username,full_name,primary_group,secondary_groups
+jdoe,John Doe,developers,"docker,sudo"
+asmith,Alice Smith,developers,"docker"
+rbrown,Robert Brown,admins,"docker"
